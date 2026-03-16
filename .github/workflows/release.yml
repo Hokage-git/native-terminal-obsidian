@@ -26,8 +26,7 @@ jobs:
         run: npm ci
 
       - name: Verify tag matches manifest version
-        run: |
-          node -e "const fs=require('fs'); const manifest=JSON.parse(fs.readFileSync('manifest.json','utf8')); const expected='v'+manifest.version; const actual=process.env.GITHUB_REF_NAME; if (actual !== expected) { console.error(`Tag ${actual} does not match manifest version ${expected}`); process.exit(1); }"
+        run: node scripts/verify-release-tag.mjs
 
       - name: Run tests
         run: npm test
