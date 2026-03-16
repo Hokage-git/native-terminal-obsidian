@@ -98,15 +98,16 @@ export default class ObsidianTerminalPlugin extends Plugin {
     const workspace = (this.app as {
       workspace: {
         getLeavesOfType: (type: string) => unknown[];
-        getRightLeaf: (split: boolean) => Promise<{ setViewState: (state: { type: string; active: boolean }) => Promise<void> }> | { setViewState: (state: { type: string; active: boolean }) => Promise<void> };
+        rootSplit?: unknown;
+        getMostRecentLeaf?: (root?: unknown) => unknown | null;
+        createLeafBySplit?: (leaf: unknown, direction?: "vertical" | "horizontal", before?: boolean) => { setViewState: (state: { type: string; active: boolean }) => Promise<void> } | Promise<{ setViewState: (state: { type: string; active: boolean }) => Promise<void> }>;
+        getLeaf?: (newLeaf?: "split" | boolean, direction?: "vertical" | "horizontal") => { setViewState: (state: { type: string; active: boolean }) => Promise<void> } | Promise<{ setViewState: (state: { type: string; active: boolean }) => Promise<void> }>;
         revealLeaf: (leaf: unknown) => Promise<void> | void;
       };
     }).workspace;
 
     const leaves = workspace.getLeavesOfType(TERMINAL_VIEW_TYPE);
-    const leaf =
-      leaves[0] ??
-      (await workspace.getRightLeaf(false));
+    const leaf = leaves[0] ?? (await this.createBottomLeaf(workspace));
 
     await leaf.setViewState({
       type: TERMINAL_VIEW_TYPE,
@@ -115,5 +116,23 @@ export default class ObsidianTerminalPlugin extends Plugin {
 
     await workspace.revealLeaf(leaf);
     return (leaf as { view?: TerminalView | null }).view ?? null;
+  }
+
+  private async createBottomLeaf(workspace: {
+    rootSplit?: unknown;
+    getMostRecentLeaf?: (root?: unknown) => unknown | null;
+    createLeafBySplit?: (leaf: unknown, direction?: "vertical" | "horizontal", before?: boolean) => { setViewState: (state: { type: string; active: boolean }) => Promise<void> } | Promise<{ setViewState: (state: { type: string; active: boolean }) => Promise<void> }>;
+    getLeaf?: (newLeaf?: "split" | boolean, direction?: "vertical" | "horizontal") => { setViewState: (state: { type: string; active: boolean }) => Promise<void> } | Promise<{ setViewState: (state: { type: string; active: boolean }) => Promise<void> }>;
+  }): Promise<{ setViewState: (state: { type: string; active: boolean }) => Promise<void> }> {
+    const rootLeaf = workspace.getMostRecentLeaf?.(workspace.rootSplit);
+    if (rootLeaf && workspace.createLeafBySplit) {
+      return await workspace.createLeafBySplit(rootLeaf, "horizontal");
+    }
+
+    if (workspace.getLeaf) {
+      return await workspace.getLeaf("split", "horizontal");
+    }
+
+    throw new Error("Obsidian workspace API does not support bottom terminal placement.");
   }
 }

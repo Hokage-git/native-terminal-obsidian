@@ -11,6 +11,7 @@ Embedded desktop terminal panel for Obsidian with PTY-backed shell sessions. The
 - Starts in the current vault root by default
 - Simple settings for shell path and terminal font size
 - Command palette actions for `Run Codex` and `Run Claude`
+- Theme mode with `Auto`, `Dark`, and `Light`, where `Auto` follows the active Obsidian theme
 
 ## Limitations
 

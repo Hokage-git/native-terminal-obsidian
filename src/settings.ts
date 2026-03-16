@@ -1,4 +1,4 @@
-export type TerminalTheme = "dark" | "light";
+export type TerminalTheme = "auto" | "dark" | "light";
 export type CwdMode = "vault-root";
 
 export interface TerminalPluginSettings {
@@ -12,7 +12,7 @@ export interface TerminalPluginSettings {
 export const DEFAULT_SETTINGS: TerminalPluginSettings = {
   shellPath: "",
   fontSize: 14,
-  theme: "dark",
+  theme: "auto",
   cwdMode: "vault-root",
   desktopOnlyNotice: true,
 };

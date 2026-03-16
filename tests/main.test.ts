@@ -5,13 +5,21 @@ import { TERMINAL_VIEW_TYPE } from "../src/terminal/view";
 
 function createApp() {
   const leaves: Array<{ view: { getViewType(): string; runCommand?: ReturnType<typeof vi.fn> } | null }> = [];
+  const rootLeaf = {
+    view: {
+      getViewType: () => "markdown",
+    },
+  };
 
   return {
+    rootLeaf,
     workspace: {
       getLeavesOfType: vi.fn((type: string) =>
         leaves.filter((leaf) => leaf.view?.getViewType() === type),
       ),
-      getRightLeaf: vi.fn(() => {
+      rootSplit: {},
+      getMostRecentLeaf: vi.fn(() => rootLeaf),
+      createLeafBySplit: vi.fn(() => {
         const leaf = {
           view: null as { getViewType(): string } | null,
           async setViewState(state: { type: string; active: boolean }) {
@@ -80,7 +88,7 @@ describe("ObsidianTerminalPlugin", () => {
     const command = addCommand.mock.calls[0]?.[0];
     await command.callback();
 
-    expect(app.workspace.getRightLeaf).toHaveBeenCalled();
+    expect(app.workspace.createLeafBySplit).toHaveBeenCalledWith(app.rootLeaf, "horizontal");
     expect(app.workspace.revealLeaf).toHaveBeenCalled();
   });
 

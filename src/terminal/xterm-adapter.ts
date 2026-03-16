@@ -49,14 +49,25 @@ function getCssColor(variableName: string, fallback: string): string {
 }
 
 export function getTerminalTheme(theme: TerminalPluginSettings["theme"]) {
+  if (theme === "dark") {
+    return {
+      background: "#111827",
+      foreground: "#e5e7eb",
+      cursor: "#e5e7eb",
+      cursorAccent: "#111827",
+      selectionBackground: "rgba(96, 165, 250, 0.28)",
+      selectionInactiveBackground: "rgba(71, 85, 105, 0.35)",
+    };
+  }
+
   if (theme === "light") {
     return {
-      background: getCssColor("--background-primary", "#f5f5f5"),
-      foreground: getCssColor("--text-normal", "#1f2933"),
-      cursor: getCssColor("--interactive-accent", "#2563eb"),
-      cursorAccent: getCssColor("--background-primary", "#f5f5f5"),
-      selectionBackground: getCssColor("--text-selection", "rgba(37, 99, 235, 0.22)"),
-      selectionInactiveBackground: getCssColor("--background-modifier-hover", "rgba(148, 163, 184, 0.28)"),
+      background: "#f5f5f5",
+      foreground: "#1f2933",
+      cursor: "#2563eb",
+      cursorAccent: "#f5f5f5",
+      selectionBackground: "rgba(37, 99, 235, 0.22)",
+      selectionInactiveBackground: "rgba(148, 163, 184, 0.28)",
     };
   }
 
@@ -136,6 +147,7 @@ export async function createXtermTerminalUi(settings: TerminalPluginSettings): P
     import("@xterm/addon-fit"),
   ]);
   let inputListener: ((data: string) => void) | null = null;
+  let themeObserver: MutationObserver | null = null;
   const terminal = new Terminal({
     fontSize: settings.fontSize,
     fontFamily: '"Cascadia Code", Consolas, "Courier New", monospace',
@@ -154,6 +166,17 @@ export async function createXtermTerminalUi(settings: TerminalPluginSettings): P
   return {
     mount(element) {
       terminal.open(element);
+      if (settings.theme === "auto" && typeof MutationObserver !== "undefined") {
+        const refreshTheme = () => {
+          terminal.options.theme = getTerminalTheme("auto");
+          terminal.refresh(0, terminal.rows - 1);
+        };
+        themeObserver = new MutationObserver(refreshTheme);
+        themeObserver.observe(document.documentElement, {
+          attributes: true,
+          attributeFilter: ["class", "style", "data-theme"],
+        });
+      }
       terminal.attachCustomKeyEventHandler((event) => {
         if (event.type === "keydown") {
           const mappedEvent = mapTerminalKeyEvent(event);
@@ -243,6 +266,8 @@ export async function createXtermTerminalUi(settings: TerminalPluginSettings): P
       };
     },
     dispose() {
+      themeObserver?.disconnect();
+      themeObserver = null;
       terminal.dispose();
     },
   };

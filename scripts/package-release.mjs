@@ -1,6 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { execFileSync } from "node:child_process";
+import { copyReleaseEntries, getReleaseEntries } from "./package-release-lib.mjs";
 
 const rootDir = process.cwd();
 const manifestPath = path.join(rootDir, "manifest.json");
@@ -12,23 +13,11 @@ const manifest = JSON.parse(fs.readFileSync(manifestPath, "utf8"));
 const version = String(manifest.version);
 const zipPath = path.join(releaseRoot, `obsidian-terminal-${version}.zip`);
 
-const releaseFiles = [
-  { source: manifestPath, target: "manifest.json" },
-  { source: path.join(distDir, "main.js"), target: "main.js" },
-  { source: path.join(distDir, "terminal-helper.js"), target: "terminal-helper.js" },
-  { source: path.join(rootDir, "styles.css"), target: "styles.css" },
-];
+const releaseEntries = getReleaseEntries(rootDir);
 
 fs.rmSync(pluginDir, { recursive: true, force: true });
 fs.mkdirSync(pluginDir, { recursive: true });
-
-for (const file of releaseFiles) {
-  if (!fs.existsSync(file.source)) {
-    throw new Error(`Missing release file: ${file.source}`);
-  }
-
-  fs.copyFileSync(file.source, path.join(pluginDir, file.target));
-}
+copyReleaseEntries(releaseEntries, pluginDir);
 
 fs.rmSync(zipPath, { force: true });
 execFileSync(

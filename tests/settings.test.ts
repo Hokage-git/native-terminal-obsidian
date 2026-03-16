@@ -5,6 +5,7 @@ describe("settings", () => {
   it("exposes the default settings", () => {
     expect(DEFAULT_SETTINGS.shellPath).toBe("");
     expect(DEFAULT_SETTINGS.fontSize).toBe(14);
+    expect(DEFAULT_SETTINGS.theme).toBe("auto");
     expect(DEFAULT_SETTINGS.cwdMode).toBe("vault-root");
   });
 
