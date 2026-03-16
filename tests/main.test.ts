@@ -4,7 +4,10 @@ import ObsidianTerminalPlugin, { resolvePluginBasePath } from "../src/main";
 import { TERMINAL_VIEW_TYPE } from "../src/terminal/view";
 
 function createApp() {
-  const leaves: Array<{ view: { getViewType(): string; runCommand?: ReturnType<typeof vi.fn> } | null }> = [];
+  const leaves: Array<{
+    view: { getViewType(): string; runCommand?: ReturnType<typeof vi.fn> } | null;
+    setGroupMember?: ReturnType<typeof vi.fn>;
+  }> = [];
   const rootLeaf = {
     view: {
       getViewType: () => "markdown",
@@ -20,6 +23,19 @@ function createApp() {
       rootSplit: {},
       getMostRecentLeaf: vi.fn(() => rootLeaf),
       createLeafBySplit: vi.fn(() => {
+        const leaf = {
+          view: null as { getViewType(): string } | null,
+          async setViewState(state: { type: string; active: boolean }) {
+            this.view = {
+              getViewType: () => state.type,
+              runCommand: vi.fn(),
+            };
+          },
+        };
+        leaves.push(leaf);
+        return leaf;
+      }),
+      duplicateLeaf: vi.fn((sourceLeaf: unknown, leafType?: string) => {
         const leaf = {
           view: null as { getViewType(): string } | null,
           async setViewState(state: { type: string; active: boolean }) {
@@ -87,8 +103,13 @@ describe("ObsidianTerminalPlugin", () => {
 
     const command = addCommand.mock.calls[0]?.[0];
     await command.callback();
+    await command.callback();
 
-    expect(app.workspace.createLeafBySplit).toHaveBeenCalledWith(app.rootLeaf, "horizontal");
+    expect(app.workspace.createLeafBySplit).toHaveBeenCalledTimes(1);
+    expect(app.workspace.createLeafBySplit).toHaveBeenNthCalledWith(1, app.rootLeaf, "horizontal");
+    const terminalLeaves = app.workspace.getLeavesOfType(TERMINAL_VIEW_TYPE);
+    expect(terminalLeaves).toHaveLength(2);
+    expect(app.workspace.duplicateLeaf).toHaveBeenCalledWith(terminalLeaves[0], "tab");
     expect(app.workspace.revealLeaf).toHaveBeenCalled();
   });
 
@@ -107,12 +128,15 @@ describe("ObsidianTerminalPlugin", () => {
     expect(claudeCommand).toBeDefined();
 
     await codexCommand?.callback();
-    const terminalLeaf = app.workspace.getLeavesOfType(TERMINAL_VIEW_TYPE)[0] as {
+    const codexLeaf = app.workspace.getLeavesOfType(TERMINAL_VIEW_TYPE)[0] as {
       view: { runCommand: ReturnType<typeof vi.fn> };
     };
-    expect(terminalLeaf.view.runCommand).toHaveBeenCalledWith("npx codex");
+    expect(codexLeaf.view.runCommand).toHaveBeenCalledWith("npx codex");
 
     await claudeCommand?.callback();
-    expect(terminalLeaf.view.runCommand).toHaveBeenCalledWith("npx claude");
+    const claudeLeaf = app.workspace.getLeavesOfType(TERMINAL_VIEW_TYPE)[1] as {
+      view: { runCommand: ReturnType<typeof vi.fn> };
+    };
+    expect(claudeLeaf.view.runCommand).toHaveBeenCalledWith("npx claude");
   });
 });

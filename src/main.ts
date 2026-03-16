@@ -100,14 +100,15 @@ export default class ObsidianTerminalPlugin extends Plugin {
         getLeavesOfType: (type: string) => unknown[];
         rootSplit?: unknown;
         getMostRecentLeaf?: (root?: unknown) => unknown | null;
-        createLeafBySplit?: (leaf: unknown, direction?: "vertical" | "horizontal", before?: boolean) => { setViewState: (state: { type: string; active: boolean }) => Promise<void> } | Promise<{ setViewState: (state: { type: string; active: boolean }) => Promise<void> }>;
-        getLeaf?: (newLeaf?: "split" | boolean, direction?: "vertical" | "horizontal") => { setViewState: (state: { type: string; active: boolean }) => Promise<void> } | Promise<{ setViewState: (state: { type: string; active: boolean }) => Promise<void> }>;
+        createLeafBySplit?: (leaf: unknown, direction?: "vertical" | "horizontal", before?: boolean) => TerminalLeafLike | Promise<TerminalLeafLike>;
+        duplicateLeaf?: (leaf: TerminalLeafLike, leafType?: "tab" | boolean, direction?: "vertical" | "horizontal") => TerminalLeafLike | Promise<TerminalLeafLike>;
+        getLeaf?: (newLeaf?: "split" | boolean, direction?: "vertical" | "horizontal") => TerminalLeafLike | Promise<TerminalLeafLike>;
         revealLeaf: (leaf: unknown) => Promise<void> | void;
       };
     }).workspace;
 
-    const leaves = workspace.getLeavesOfType(TERMINAL_VIEW_TYPE);
-    const leaf = leaves[0] ?? (await this.createBottomLeaf(workspace));
+    const leaves = workspace.getLeavesOfType(TERMINAL_VIEW_TYPE) as TerminalLeafLike[];
+    const leaf = await this.createTerminalLeaf(workspace, leaves);
 
     await leaf.setViewState({
       type: TERMINAL_VIEW_TYPE,
@@ -118,12 +119,27 @@ export default class ObsidianTerminalPlugin extends Plugin {
     return (leaf as { view?: TerminalView | null }).view ?? null;
   }
 
+  private async createTerminalLeaf(workspace: {
+    rootSplit?: unknown;
+    getMostRecentLeaf?: (root?: unknown) => unknown | null;
+    createLeafBySplit?: (leaf: unknown, direction?: "vertical" | "horizontal", before?: boolean) => TerminalLeafLike | Promise<TerminalLeafLike>;
+    duplicateLeaf?: (leaf: TerminalLeafLike, leafType?: "tab" | boolean, direction?: "vertical" | "horizontal") => TerminalLeafLike | Promise<TerminalLeafLike>;
+    getLeaf?: (newLeaf?: "split" | boolean, direction?: "vertical" | "horizontal") => TerminalLeafLike | Promise<TerminalLeafLike>;
+  }, existingLeaves: TerminalLeafLike[]): Promise<TerminalLeafLike> {
+    const anchorLeaf = existingLeaves.at(-1);
+    if (anchorLeaf && workspace.duplicateLeaf) {
+      return await workspace.duplicateLeaf(anchorLeaf, "tab");
+    }
+
+    return this.createBottomLeaf(workspace);
+  }
+
   private async createBottomLeaf(workspace: {
     rootSplit?: unknown;
     getMostRecentLeaf?: (root?: unknown) => unknown | null;
-    createLeafBySplit?: (leaf: unknown, direction?: "vertical" | "horizontal", before?: boolean) => { setViewState: (state: { type: string; active: boolean }) => Promise<void> } | Promise<{ setViewState: (state: { type: string; active: boolean }) => Promise<void> }>;
-    getLeaf?: (newLeaf?: "split" | boolean, direction?: "vertical" | "horizontal") => { setViewState: (state: { type: string; active: boolean }) => Promise<void> } | Promise<{ setViewState: (state: { type: string; active: boolean }) => Promise<void> }>;
-  }): Promise<{ setViewState: (state: { type: string; active: boolean }) => Promise<void> }> {
+    createLeafBySplit?: (leaf: unknown, direction?: "vertical" | "horizontal", before?: boolean) => TerminalLeafLike | Promise<TerminalLeafLike>;
+    getLeaf?: (newLeaf?: "split" | boolean, direction?: "vertical" | "horizontal") => TerminalLeafLike | Promise<TerminalLeafLike>;
+  }): Promise<TerminalLeafLike> {
     const rootLeaf = workspace.getMostRecentLeaf?.(workspace.rootSplit);
     if (rootLeaf && workspace.createLeafBySplit) {
       return await workspace.createLeafBySplit(rootLeaf, "horizontal");
@@ -135,4 +151,9 @@ export default class ObsidianTerminalPlugin extends Plugin {
 
     throw new Error("Obsidian workspace API does not support bottom terminal placement.");
   }
+}
+
+interface TerminalLeafLike {
+  setViewState: (state: { type: string; active: boolean }) => Promise<void>;
+  view?: TerminalView | null;
 }
