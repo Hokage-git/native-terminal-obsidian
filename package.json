@@ -5,7 +5,8 @@
   "type": "module",
   "scripts": {
     "build": "node esbuild.config.mjs",
-    "test": "vitest run"
+    "test": "vitest run",
+    "package:release": "node scripts/package-release.mjs"
   },
   "devDependencies": {
     "@types/node": "^24.0.0",
