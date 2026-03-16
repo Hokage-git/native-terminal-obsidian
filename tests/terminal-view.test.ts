@@ -189,6 +189,26 @@ describe("TerminalView", () => {
     expect(session.writes).toEqual(["codex\n"]);
   });
 
+  it("can run a command in the active terminal session", async () => {
+    const terminalUi = createTerminalUi();
+    const session = createSession();
+    const view = new TerminalView(
+      {} as never,
+      {
+        isDesktop: true,
+        settings: DEFAULT_SETTINGS,
+        getVaultPath: () => "/vault",
+        createTerminalUi: () => terminalUi,
+        createSession: () => session,
+      },
+    );
+
+    await view.onOpen();
+    view.runCommand("npx codex");
+
+    expect(session.writes).toEqual(["npx codex\r"]);
+  });
+
   it("exposes the expected view type", () => {
     expect(TERMINAL_VIEW_TYPE).toBe("integrated-terminal-view");
   });

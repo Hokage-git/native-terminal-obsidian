@@ -38,6 +38,10 @@ export class TerminalView extends ItemView {
     return "Integrated Terminal";
   }
 
+  runCommand(command: string): void {
+    this.session?.write(`${command}\r`);
+  }
+
   async onOpen(): Promise<void> {
     this.containerEl.innerHTML = "";
     this.containerEl.classList.add("integrated-terminal");

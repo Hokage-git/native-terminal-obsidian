@@ -10,6 +10,7 @@ Embedded desktop terminal panel for Obsidian with PTY-backed shell sessions. The
 - Cross-platform shell detection for Windows, macOS, and Linux
 - Starts in the current vault root by default
 - Simple settings for shell path and terminal font size
+- Command palette actions for `Run Codex` and `Run Claude`
 
 ## Limitations
 

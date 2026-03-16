@@ -38,21 +38,35 @@ export function getWheelScrollAmount(deltaY: number): number {
   return Math.sign(deltaY) * 3;
 }
 
+function getCssColor(variableName: string, fallback: string): string {
+  if (typeof document === "undefined") {
+    return fallback;
+  }
+
+  const styles = getComputedStyle(document.documentElement);
+  const value = styles.getPropertyValue(variableName).trim();
+  return value || fallback;
+}
+
 export function getTerminalTheme(theme: TerminalPluginSettings["theme"]) {
   if (theme === "light") {
     return {
-      background: "#f5f5f5",
-      foreground: "#1f2933",
-      selectionBackground: "rgba(37, 99, 235, 0.22)",
-      selectionInactiveBackground: "rgba(148, 163, 184, 0.28)",
+      background: getCssColor("--background-primary", "#f5f5f5"),
+      foreground: getCssColor("--text-normal", "#1f2933"),
+      cursor: getCssColor("--interactive-accent", "#2563eb"),
+      cursorAccent: getCssColor("--background-primary", "#f5f5f5"),
+      selectionBackground: getCssColor("--text-selection", "rgba(37, 99, 235, 0.22)"),
+      selectionInactiveBackground: getCssColor("--background-modifier-hover", "rgba(148, 163, 184, 0.28)"),
     };
   }
 
   return {
-    background: "#111827",
-    foreground: "#e5e7eb",
-    selectionBackground: "rgba(96, 165, 250, 0.28)",
-    selectionInactiveBackground: "rgba(71, 85, 105, 0.35)",
+    background: getCssColor("--background-primary", "#111827"),
+    foreground: getCssColor("--text-normal", "#e5e7eb"),
+    cursor: getCssColor("--interactive-accent", "#e5e7eb"),
+    cursorAccent: getCssColor("--background-primary", "#111827"),
+    selectionBackground: getCssColor("--text-selection", "rgba(96, 165, 250, 0.28)"),
+    selectionInactiveBackground: getCssColor("--background-modifier-hover", "rgba(71, 85, 105, 0.35)"),
   };
 }
 

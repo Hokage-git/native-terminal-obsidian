@@ -1,10 +1,10 @@
 {
   "id": "obsidian-terminal",
   "name": "Obsidian Terminal",
-  "version": "0.2.12",
+  "version": "0.2.14",
   "minAppVersion": "1.5.0",
   "description": "Embedded interactive terminal panel for Obsidian desktop.",
   "author": "Maksim Gladkov",
-  "authorUrl": "https://github.com/Hokage-git",
+  "authorUrl": "https://github.com/Hokage-git/native-terminal-obsidian",
   "isDesktopOnly": true
 }

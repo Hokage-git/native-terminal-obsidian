@@ -4,7 +4,7 @@ import ObsidianTerminalPlugin, { resolvePluginBasePath } from "../src/main";
 import { TERMINAL_VIEW_TYPE } from "../src/terminal/view";
 
 function createApp() {
-  const leaves: Array<{ view: { getViewType(): string } | null }> = [];
+  const leaves: Array<{ view: { getViewType(): string; runCommand?: ReturnType<typeof vi.fn> } | null }> = [];
 
   return {
     workspace: {
@@ -17,6 +17,7 @@ function createApp() {
           async setViewState(state: { type: string; active: boolean }) {
             this.view = {
               getViewType: () => state.type,
+              runCommand: vi.fn(),
             };
           },
         };
@@ -81,5 +82,29 @@ describe("ObsidianTerminalPlugin", () => {
 
     expect(app.workspace.getRightLeaf).toHaveBeenCalled();
     expect(app.workspace.revealLeaf).toHaveBeenCalled();
+  });
+
+  it("adds commands that run codex and claude in the terminal", async () => {
+    const app = createApp();
+    const plugin = new ObsidianTerminalPlugin(app as never, { dir: "/plugin" } as never);
+    const addCommand = vi.spyOn(plugin, "addCommand");
+    vi.spyOn(plugin, "loadData").mockResolvedValue({});
+
+    await plugin.onload();
+
+    const codexCommand = addCommand.mock.calls.find((call) => call[0].id === "run-codex")?.[0];
+    const claudeCommand = addCommand.mock.calls.find((call) => call[0].id === "run-claude")?.[0];
+
+    expect(codexCommand).toBeDefined();
+    expect(claudeCommand).toBeDefined();
+
+    await codexCommand?.callback();
+    const terminalLeaf = app.workspace.getLeavesOfType(TERMINAL_VIEW_TYPE)[0] as {
+      view: { runCommand: ReturnType<typeof vi.fn> };
+    };
+    expect(terminalLeaf.view.runCommand).toHaveBeenCalledWith("npx codex");
+
+    await claudeCommand?.callback();
+    expect(terminalLeaf.view.runCommand).toHaveBeenCalledWith("npx claude");
   });
 });

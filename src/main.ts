@@ -57,6 +57,24 @@ export default class ObsidianTerminalPlugin extends Plugin {
       },
     });
 
+    this.addCommand({
+      id: "run-codex",
+      name: "Run Codex",
+      callback: async () => {
+        const view = await this.activateView();
+        view?.runCommand("npx codex");
+      },
+    });
+
+    this.addCommand({
+      id: "run-claude",
+      name: "Run Claude",
+      callback: async () => {
+        const view = await this.activateView();
+        view?.runCommand("npx claude");
+      },
+    });
+
     this.addRibbonIcon("terminal-square", "Open integrated terminal", async () => {
       await this.activateView();
     });
@@ -76,7 +94,7 @@ export default class ObsidianTerminalPlugin extends Plugin {
     await this.saveData(this.settings);
   }
 
-  async activateView(): Promise<void> {
+  async activateView(): Promise<TerminalView | null> {
     const workspace = (this.app as {
       workspace: {
         getLeavesOfType: (type: string) => unknown[];
@@ -96,5 +114,6 @@ export default class ObsidianTerminalPlugin extends Plugin {
     });
 
     await workspace.revealLeaf(leaf);
+    return (leaf as { view?: TerminalView | null }).view ?? null;
   }
 }
