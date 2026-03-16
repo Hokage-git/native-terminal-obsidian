@@ -1,0 +1,137 @@
+.workspace-leaf-content[data-type="integrated-terminal-view"] {
+  min-height: 0;
+}
+
+.workspace-leaf-content[data-type="integrated-terminal-view"] .view-content {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+  padding: 0;
+  overflow: hidden;
+}
+
+.workspace-leaf-content[data-type="integrated-terminal-view"] .integrated-terminal {
+  display: flex;
+  flex: 1 1 auto;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
+  background: var(--background-primary);
+}
+
+.workspace-leaf-content[data-type="integrated-terminal-view"] .integrated-terminal__frame {
+  display: flex;
+  flex: 1 1 auto;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
+  padding: 8px 10px;
+  box-sizing: border-box;
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--background-primary) 92%, black) 0%, var(--background-primary) 100%);
+}
+
+.workspace-leaf-content[data-type="integrated-terminal-view"] .integrated-terminal__host {
+  display: flex;
+  flex: 1 1 auto;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.workspace-leaf-content[data-type="integrated-terminal-view"] .integrated-terminal__host .xterm {
+  cursor: text;
+  position: relative;
+  user-select: none;
+  -ms-user-select: none;
+  -webkit-user-select: none;
+  flex: 1 1 auto;
+  width: 100%;
+  height: 100%;
+}
+
+.workspace-leaf-content[data-type="integrated-terminal-view"] .integrated-terminal__host .xterm .xterm-helpers {
+  position: absolute;
+  top: 0;
+  z-index: 5;
+}
+
+.workspace-leaf-content[data-type="integrated-terminal-view"] .integrated-terminal__host .xterm .xterm-helper-textarea,
+.workspace-leaf-content[data-type="integrated-terminal-view"] .integrated-terminal__host .xterm .xterm-char-measure-element,
+.workspace-leaf-content[data-type="integrated-terminal-view"] .integrated-terminal__host .xterm .composition-view {
+  pointer-events: none;
+}
+
+.workspace-leaf-content[data-type="integrated-terminal-view"] .integrated-terminal__host .xterm .xterm-helper-textarea {
+  padding: 0;
+  border: 0;
+  margin: 0;
+  position: absolute;
+  opacity: 0;
+  left: -9999em;
+  top: 0;
+  width: 0;
+  height: 0;
+  z-index: -5;
+  white-space: nowrap;
+  overflow: hidden;
+  resize: none;
+}
+
+.workspace-leaf-content[data-type="integrated-terminal-view"] .integrated-terminal__host .xterm .composition-view {
+  background: #000;
+  color: #fff;
+  display: none;
+  position: absolute;
+  white-space: nowrap;
+  z-index: 1;
+}
+
+.workspace-leaf-content[data-type="integrated-terminal-view"] .integrated-terminal__host .xterm .composition-view.active {
+  display: block;
+}
+
+.workspace-leaf-content[data-type="integrated-terminal-view"] .integrated-terminal__host .xterm .xterm-viewport {
+  background-color: transparent;
+  overflow-y: scroll;
+  cursor: default;
+  position: absolute;
+  right: 0;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  overscroll-behavior: contain;
+}
+
+.workspace-leaf-content[data-type="integrated-terminal-view"] .integrated-terminal__host .xterm .xterm-screen {
+  position: relative;
+}
+
+.workspace-leaf-content[data-type="integrated-terminal-view"] .integrated-terminal__host .xterm .xterm-screen canvas {
+  position: absolute;
+  left: 0;
+  top: 0;
+}
+
+.workspace-leaf-content[data-type="integrated-terminal-view"] .integrated-terminal__host .xterm .xterm-scroll-area {
+  visibility: hidden;
+}
+
+.workspace-leaf-content[data-type="integrated-terminal-view"] .integrated-terminal__host .xterm .xterm-char-measure-element {
+  display: inline-block;
+  visibility: hidden;
+  position: absolute;
+  top: 0;
+  left: -9999em;
+  line-height: normal;
+}
+
+.workspace-leaf-content[data-type="integrated-terminal-view"] .integrated-terminal__host .xterm-screen,
+.workspace-leaf-content[data-type="integrated-terminal-view"] .integrated-terminal__host .xterm-viewport,
+.workspace-leaf-content[data-type="integrated-terminal-view"] .integrated-terminal__host .xterm-scroll-area {
+  max-height: 100%;
+}
