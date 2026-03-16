@@ -1,7 +1,7 @@
 {
   "id": "obsidian-terminal",
   "name": "Obsidian Terminal",
-  "version": "0.2.16",
+  "version": "1.0.0",
   "minAppVersion": "1.5.0",
   "description": "Embedded interactive terminal panel for Obsidian desktop.",
   "author": "Maksim Gladkov",
