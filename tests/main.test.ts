@@ -62,10 +62,10 @@ describe("ObsidianTerminalPlugin", () => {
   it("resolves the plugin base path from a relative manifest dir", () => {
     expect(
       resolvePluginBasePath({
-        manifestDir: ".obsidian/plugins/obsidian-terminal",
+        manifestDir: ".obsidian/plugins/native-terminal",
         vaultBasePath: "C:/Users/Макс/Documents/UMKA",
       }),
-    ).toMatch(/UMKA[\\/]+\.obsidian[\\/]+plugins[\\/]+obsidian-terminal$/);
+    ).toMatch(/UMKA[\\/]+\.obsidian[\\/]+plugins[\\/]+native-terminal$/);
   });
 
   it("loads settings and registers the terminal view on startup", async () => {

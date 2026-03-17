@@ -4,7 +4,7 @@ import { getReleaseEntries } from "../scripts/package-release-lib.mjs";
 
 describe("getReleaseEntries", () => {
   it("includes the runtime subset required by the terminal helper", () => {
-    const rootDir = "C:/vault/.obsidian/plugins/obsidian-terminal";
+    const rootDir = "C:/vault/.obsidian/plugins/native-terminal";
 
     expect(getReleaseEntries(rootDir)).toEqual(
       expect.arrayContaining([

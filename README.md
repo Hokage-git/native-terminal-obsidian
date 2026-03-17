@@ -51,7 +51,7 @@ npm run build
 - `styles.css`
 
 ```text
-<vault>/.obsidian/plugins/obsidian-terminal/
+<vault>/.obsidian/plugins/native-terminal/
 ```
 
 3. Enable the plugin in Obsidian community plugins settings.
@@ -59,10 +59,10 @@ npm run build
 The installed folder should look like this:
 
 ```text
-<vault>/.obsidian/plugins/obsidian-terminal/manifest.json
-<vault>/.obsidian/plugins/obsidian-terminal/main.js
-<vault>/.obsidian/plugins/obsidian-terminal/terminal-helper.js
-<vault>/.obsidian/plugins/obsidian-terminal/styles.css
+<vault>/.obsidian/plugins/native-terminal/manifest.json
+<vault>/.obsidian/plugins/native-terminal/main.js
+<vault>/.obsidian/plugins/native-terminal/terminal-helper.js
+<vault>/.obsidian/plugins/native-terminal/styles.css
 ```
 
 ## Release Artifact
@@ -70,12 +70,18 @@ The installed folder should look like this:
 For release downloads, package the plugin folder contents as:
 
 ```text
-obsidian-terminal/
+native-terminal/
   manifest.json
   main.js
   terminal-helper.js
   styles.css
 ```
+
+## Community Plugins Submission Status
+
+This repository includes the standard submission metadata: `manifest.json`, `versions.json`, `README.md`, `LICENSE`, and a release workflow that publishes `main.js`, `manifest.json`, and `styles.css`.
+
+The plugin still depends on `terminal-helper.js` and `node-pty` native runtime files. Obsidian Community Plugins installs only the standard release assets, so this plugin still needs extra packaging work before it can be installed from the in-app directory without manual steps.
 
 ## Security
 

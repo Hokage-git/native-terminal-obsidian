@@ -7,11 +7,11 @@ const rootDir = process.cwd();
 const manifestPath = path.join(rootDir, "manifest.json");
 const distDir = path.join(rootDir, "dist");
 const releaseRoot = path.join(rootDir, "release");
-const pluginDir = path.join(releaseRoot, "obsidian-terminal");
+const pluginDir = path.join(releaseRoot, "native-terminal");
 
 const manifest = JSON.parse(fs.readFileSync(manifestPath, "utf8"));
 const version = String(manifest.version);
-const zipPath = path.join(releaseRoot, `obsidian-terminal-${version}.zip`);
+const zipPath = path.join(releaseRoot, `native-terminal-${version}.zip`);
 
 const releaseEntries = getReleaseEntries(rootDir);
 
