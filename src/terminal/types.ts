@@ -9,6 +9,8 @@ export interface PtyInstance {
   pid: number;
   process: string;
   onData(callback: (data: string) => void): DisposableLike;
+  onExit?(callback: (exitCode: number) => void): DisposableLike;
+  onError?(callback: (message: string) => void): DisposableLike;
   write(data: string): void;
   resize(cols: number, rows: number): void;
   kill(): void;
@@ -27,6 +29,8 @@ export interface TerminalUi {
   write(data: string): void;
   onInput(listener: (data: string) => void): void;
   fit(): { cols: number; rows: number };
+  clear(): void;
+  focus(): void;
   dispose(): void;
 }
 

@@ -8,11 +8,15 @@ describe("production terminal wiring", () => {
       write: vi.fn(),
       onInput: vi.fn(),
       fit: vi.fn(() => ({ cols: 90, rows: 25 })),
+      clear: vi.fn(),
+      focus: vi.fn(),
       dispose: vi.fn(),
     };
     const session = {
       start: vi.fn(),
       onData: vi.fn(() => ({ dispose() {} })),
+      onExit: vi.fn(() => ({ dispose() {} })),
+      onError: vi.fn(() => ({ dispose() {} })),
       write: vi.fn(),
       resize: vi.fn(),
       dispose: vi.fn(),
@@ -42,8 +46,18 @@ describe("production terminal wiring", () => {
 
     await view.onOpen();
 
+    expect(createXtermTerminalUi).toHaveBeenCalledTimes(2);
     expect(createXtermTerminalUi).toHaveBeenCalledWith(DEFAULT_SETTINGS);
-    expect(createNodePtyTerminalSession).toHaveBeenCalledWith(
+    expect(createNodePtyTerminalSession).toHaveBeenCalledTimes(2);
+    expect(createNodePtyTerminalSession).toHaveBeenNthCalledWith(
+      1,
+      expect.objectContaining({
+        cwd: "/vault",
+        baseDir: "/plugin",
+      }),
+    );
+    expect(createNodePtyTerminalSession).toHaveBeenNthCalledWith(
+      2,
       expect.objectContaining({
         cwd: "/vault",
         baseDir: "/plugin",

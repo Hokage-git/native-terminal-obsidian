@@ -265,6 +265,12 @@ export async function createXtermTerminalUi(settings: TerminalPluginSettings): P
         rows: terminal.rows,
       };
     },
+    clear() {
+      terminal.clear();
+    },
+    focus() {
+      terminal.focus();
+    },
     dispose() {
       themeObserver?.disconnect();
       themeObserver = null;

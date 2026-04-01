@@ -7,6 +7,8 @@ Embedded desktop terminal panel for Obsidian with PTY-backed shell sessions. The
 - Interactive terminal panel inside Obsidian
 - PTY-backed shell session via `node-pty`
 - Terminal UI rendered with `xterm.js`
+- Two live terminal slots with fast `A/B` switching
+- Toolbar actions for focus, clear, restart, `Codex`, and `Claude`
 - Cross-platform shell detection for Windows, macOS, and Linux
 - Starts in the current vault root by default
 - Simple settings for shell path and terminal font size
@@ -16,7 +18,7 @@ Embedded desktop terminal panel for Obsidian with PTY-backed shell sessions. The
 ## Limitations
 
 - Desktop only
-- First version provides one terminal session per view
+- One terminal view provides two persistent shell slots instead of unlimited tabs
 - `codex`, `claude`, and other CLIs must already be installed and available on your system
 - `node-pty` must build successfully for the Electron/Node runtime used on your machine
 

@@ -38,8 +38,12 @@ type HelperEvent =
 export class TerminalSession {
   private readonly options: TerminalSessionOptions;
   private pty: PtyInstance | null = null;
-  private readonly listeners = new Set<(data: string) => void>();
+  private readonly dataListeners = new Set<(data: string) => void>();
+  private readonly exitListeners = new Set<(exitCode: number) => void>();
+  private readonly errorListeners = new Set<(message: string) => void>();
   private dataSubscription: DisposableLike | null = null;
+  private exitSubscription: DisposableLike | null = null;
+  private errorSubscription: DisposableLike | null = null;
 
   constructor(options: TerminalSessionOptions) {
     this.options = options;
@@ -55,18 +59,48 @@ export class TerminalSession {
     });
 
     this.dataSubscription = this.pty.onData((data) => {
-      for (const listener of this.listeners) {
+      for (const listener of this.dataListeners) {
         listener(data);
       }
     });
+    this.exitSubscription = this.pty.onExit?.((exitCode) => {
+      for (const listener of this.exitListeners) {
+        listener(exitCode);
+      }
+    }) ?? null;
+    this.errorSubscription = this.pty.onError?.((message) => {
+      for (const listener of this.errorListeners) {
+        listener(message);
+      }
+    }) ?? null;
   }
 
   onData(listener: (data: string) => void): DisposableLike {
-    this.listeners.add(listener);
+    this.dataListeners.add(listener);
 
     return {
       dispose: () => {
-        this.listeners.delete(listener);
+        this.dataListeners.delete(listener);
+      },
+    };
+  }
+
+  onExit(listener: (exitCode: number) => void): DisposableLike {
+    this.exitListeners.add(listener);
+
+    return {
+      dispose: () => {
+        this.exitListeners.delete(listener);
+      },
+    };
+  }
+
+  onError(listener: (message: string) => void): DisposableLike {
+    this.errorListeners.add(listener);
+
+    return {
+      dispose: () => {
+        this.errorListeners.delete(listener);
       },
     };
   }
@@ -81,7 +115,11 @@ export class TerminalSession {
 
   dispose(): void {
     this.dataSubscription?.dispose();
+    this.exitSubscription?.dispose();
+    this.errorSubscription?.dispose();
     this.dataSubscription = null;
+    this.exitSubscription = null;
+    this.errorSubscription = null;
     this.pty?.kill();
     this.pty = null;
   }
@@ -140,6 +178,8 @@ export function createHelperPtyBackend(options: {
       windowsHide: true,
     });
     const listeners = new Set<(data: string) => void>();
+    const exitListeners = new Set<(exitCode: number) => void>();
+    const errorListeners = new Set<(message: string) => void>();
     const pendingMessages: HelperCommand[] = [];
     let isReady = false;
 
@@ -174,9 +214,15 @@ export function createHelperPtyBackend(options: {
           emit(message.data);
           return;
         case "error":
+          for (const listener of errorListeners) {
+            listener(message.message);
+          }
           emit(`[obsidian-terminal] ${message.message}\r\n`);
           return;
         case "exit":
+          for (const listener of exitListeners) {
+            listener(message.exitCode);
+          }
           emit(`[obsidian-terminal] Shell exited with code ${message.exitCode}.\r\n`);
           return;
       }
@@ -190,6 +236,9 @@ export function createHelperPtyBackend(options: {
       emit(`[obsidian-terminal] ${chunk}`);
     });
     child.on("error", (error) => {
+      for (const listener of errorListeners) {
+        listener(error.message);
+      }
       emit(`[obsidian-terminal] ${error.message}\r\n`);
     });
 
@@ -210,6 +259,22 @@ export function createHelperPtyBackend(options: {
         return {
           dispose() {
             listeners.delete(callback);
+          },
+        };
+      },
+      onExit(callback) {
+        exitListeners.add(callback);
+        return {
+          dispose() {
+            exitListeners.delete(callback);
+          },
+        };
+      },
+      onError(callback) {
+        errorListeners.add(callback);
+        return {
+          dispose() {
+            errorListeners.delete(callback);
           },
         };
       },
