@@ -158,4 +158,48 @@ describe("createHelperPtyBackend", () => {
       }),
     );
   });
+
+  it("reuses the current Electron executable when no standalone node path is provided", () => {
+    const child = createFakeChildProcess();
+    const forkProcess = vi.fn(() => child as never);
+
+    createHelperPtyBackend({
+      baseDir: "/plugin",
+      forkProcess,
+      env: { PATH: "" },
+      processExecPath: "/usr/lib/obsidian/obsidian",
+    })("bash", [], { cwd: "/vault" });
+
+    expect(forkProcess).toHaveBeenCalledWith(
+      expect.any(String),
+      [],
+      expect.objectContaining({
+        execPath: "/usr/lib/obsidian/obsidian",
+      }),
+    );
+  });
+
+  it("ignores EPIPE when writing to a helper process that already crashed", () => {
+    const child = createFakeChildProcess();
+    const forkProcess = vi.fn(() => child as never);
+    child.send.mockImplementationOnce(() => undefined);
+    child.send.mockImplementation(() => {
+      const error = new Error("write EPIPE") as Error & { code?: string };
+      error.code = "EPIPE";
+      throw error;
+    });
+
+    const backend = createHelperPtyBackend({
+      baseDir: "/plugin",
+      forkProcess,
+    });
+    const pty = backend("bash", [], { cwd: "/vault" });
+    const onData = vi.fn();
+
+    pty.onData(onData);
+
+    expect(() => pty.write("pwd\r")).not.toThrow();
+    expect(() => pty.kill()).not.toThrow();
+    expect(onData).not.toHaveBeenCalledWith(expect.stringContaining("EPIPE"));
+  });
 });

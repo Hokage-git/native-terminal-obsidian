@@ -4,6 +4,10 @@ import { DEFAULT_SETTINGS, normalizeSettings, type TerminalPluginSettings } from
 import { TerminalSettingTab } from "./settings-tab";
 import { TerminalView, TERMINAL_VIEW_TYPE } from "./terminal/view";
 
+function isAbsolutePath(filePath: string): boolean {
+  return path.isAbsolute(filePath) || path.win32.isAbsolute(filePath);
+}
+
 export function resolvePluginBasePath(options: {
   manifestDir?: string;
   vaultBasePath?: string;
@@ -12,7 +16,7 @@ export function resolvePluginBasePath(options: {
     return "";
   }
 
-  if (path.isAbsolute(options.manifestDir)) {
+  if (isAbsolutePath(options.manifestDir)) {
     return options.manifestDir;
   }
 

@@ -31,7 +31,15 @@ export function isVerifyReleaseTagEntrypoint(importMetaUrl, argvPath) {
     return false;
   }
 
-  return path.resolve(fileURLToPath(importMetaUrl)) === path.resolve(argvPath);
+  const importPath = fileURLToPath(importMetaUrl);
+  const normalizeForComparison = (value) =>
+    value
+      .replace(/\\/g, "/")
+      .replace(/^\/([A-Za-z]:\/)/, "$1");
+  const normalizedImportPath = normalizeForComparison(path.normalize(importPath));
+  const normalizedArgvPath = normalizeForComparison(path.normalize(argvPath));
+
+  return normalizedImportPath === normalizedArgvPath;
 }
 
 if (isVerifyReleaseTagEntrypoint(import.meta.url, process.argv[1])) {

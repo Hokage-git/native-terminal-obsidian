@@ -49,7 +49,10 @@ export function commandExistsOnPath(options: {
     return exists(command);
   }
 
-  const pathEntries = (options.env.PATH ?? "").split(path.delimiter).filter(Boolean);
+  const pathApi = options.platform === "win32" ? path.win32 : path;
+  const pathEntries = (options.env.PATH ?? "")
+    .split(options.platform === "win32" ? ";" : path.delimiter)
+    .filter(Boolean);
   const extensions =
     options.platform === "win32"
       ? (options.env.PATHEXT ?? ".EXE;.CMD;.BAT;.COM")
@@ -58,13 +61,13 @@ export function commandExistsOnPath(options: {
           .map((value) => value.toLowerCase())
       : [""];
 
-  const hasExtension = path.extname(command) !== "";
+  const hasExtension = pathApi.extname(command) !== "";
 
   for (const entry of pathEntries) {
     if (options.platform === "win32") {
       const candidates = hasExtension
-        ? [path.join(entry, command)]
-        : extensions.map((extension) => path.join(entry, `${command}${extension.toLowerCase()}`));
+        ? [pathApi.join(entry, command)]
+        : extensions.map((extension) => pathApi.join(entry, `${command}${extension.toLowerCase()}`));
 
       if (candidates.some((candidate) => exists(candidate))) {
         return true;
@@ -72,7 +75,7 @@ export function commandExistsOnPath(options: {
       continue;
     }
 
-    if (exists(path.join(entry, command))) {
+    if (exists(pathApi.join(entry, command))) {
       return true;
     }
   }

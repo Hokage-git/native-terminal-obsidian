@@ -35,6 +35,15 @@ type HelperEvent =
   | { type: "error"; message: string }
   | { type: "exit"; exitCode: number };
 
+function isClosedIpcError(error: unknown): boolean {
+  if (!(error instanceof Error)) {
+    return false;
+  }
+
+  const code = (error as Error & { code?: string }).code;
+  return code === "EPIPE" || code === "ERR_IPC_CHANNEL_CLOSED";
+}
+
 export class TerminalSession {
   private readonly options: TerminalSessionOptions;
   private pty: PtyInstance | null = null;
@@ -145,6 +154,10 @@ function resolveNodeExecPath(options: {
     return env.NODE;
   }
 
+  if (processExecPath) {
+    return processExecPath;
+  }
+
   return process.platform === "win32" ? "node.exe" : "node";
 }
 
@@ -189,9 +202,19 @@ export function createHelperPtyBackend(options: {
       }
     };
 
+    const safeSend = (message: HelperCommand) => {
+      try {
+        child.send?.(message);
+      } catch (error) {
+        if (!isClosedIpcError(error)) {
+          throw error;
+        }
+      }
+    };
+
     const send = (message: HelperCommand) => {
       if (message.type === "start" || message.type === "dispose" || isReady) {
-        child.send?.(message);
+        safeSend(message);
         return;
       }
 
@@ -200,7 +223,7 @@ export function createHelperPtyBackend(options: {
 
     const flushPending = () => {
       for (const message of pendingMessages.splice(0)) {
-        child.send?.(message);
+        safeSend(message);
       }
     };
 
