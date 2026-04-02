@@ -171,15 +171,21 @@ export function createHelperPtyBackend(options: {
   const baseDir = options.baseDir ?? __dirname;
   const helperScriptPath = resolveHelperScriptPath(baseDir);
   const forkProcess = options.forkProcess ?? fork;
+  const processExecPath = options.processExecPath ?? process.execPath;
   const nodeExecPath =
     options.nodeExecPath ??
     resolveNodeExecPath({
       env: options.env,
-      processExecPath: options.processExecPath,
+      processExecPath,
     });
+  const usesElectronExecPath =
+    process.platform === "linux" &&
+    nodeExecPath === processExecPath &&
+    !path.basename(processExecPath).toLowerCase().startsWith("node");
   const helperEnv: NodeJS.ProcessEnv = {
     ...(options.env ?? process.env),
     ELECTRON_RUN_AS_NODE: "1",
+    ...(usesElectronExecPath ? { ELECTRON_DISABLE_SANDBOX: "1" } : {}),
   };
 
   return (file, args, spawnOptions) => {
@@ -187,6 +193,7 @@ export function createHelperPtyBackend(options: {
       cwd: baseDir,
       env: helperEnv,
       execPath: nodeExecPath,
+      ...(usesElectronExecPath ? { execArgv: ["--no-sandbox"] } : {}),
       stdio: ["ignore", "pipe", "pipe", "ipc"],
       windowsHide: true,
     });

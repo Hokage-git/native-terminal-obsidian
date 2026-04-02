@@ -175,6 +175,10 @@ describe("createHelperPtyBackend", () => {
       [],
       expect.objectContaining({
         execPath: "/usr/lib/obsidian/obsidian",
+        execArgv: ["--no-sandbox"],
+        env: expect.objectContaining({
+          ELECTRON_DISABLE_SANDBOX: "1",
+        }),
       }),
     );
   });
