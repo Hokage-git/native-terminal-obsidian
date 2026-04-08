@@ -19,7 +19,7 @@ describe("prepareShellLaunch", () => {
     expect(result.shell.args).toEqual([]);
   });
 
-  it("keeps the original cwd on non-Windows platforms", () => {
+  it("keeps the original cwd and prepares an interactive shell on non-Windows platforms", () => {
     const result = prepareShellLaunch({
       shell: { command: "bash", args: [] },
       cwd: "/vault",
@@ -28,7 +28,7 @@ describe("prepareShellLaunch", () => {
     });
 
     expect(result.cwd).toBe("/vault");
-    expect(result.shell).toEqual({ command: "bash", args: [] });
+    expect(result.shell).toEqual({ command: "bash", args: ["-il"] });
   });
 
   it("falls back to an ASCII Windows temp directory even when USERPROFILE is non-ASCII", () => {

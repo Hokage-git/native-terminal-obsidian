@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { TerminalSession } from "../src/terminal/session";
+import { createNodePtyTerminalSession, createTerminalProcessEnv, TerminalSession } from "../src/terminal/session";
 import type { PtyInstance } from "../src/terminal/types";
 
 function createFakePty(): PtyInstance & {
@@ -72,6 +72,19 @@ function createFakePty(): PtyInstance & {
 }
 
 describe("TerminalSession", () => {
+  it("enriches Unix terminal env with common executable paths", () => {
+    const env = createTerminalProcessEnv({
+      HOME: "/home/mgladkov",
+      PATH: "/usr/bin",
+      TERM: "dumb",
+    });
+
+    expect(env.TERM).toBe("xterm-256color");
+    expect(env.PATH).toContain("/usr/local/bin");
+    expect(env.PATH).toContain("/home/mgladkov/.local/bin");
+    expect(env.PATH).toContain("/home/mgladkov/bin");
+  });
+
   it("starts a PTY with the requested shell and cwd", () => {
     const spawn = vi.fn(() => createFakePty());
 
@@ -174,5 +187,56 @@ describe("TerminalSession", () => {
     pty.emitError("spawn failed");
 
     expect(onError).toHaveBeenCalledWith("spawn failed");
+  });
+
+  it("uses the direct PTY backend on non-Windows platforms", () => {
+    const pty = createFakePty();
+    const directSpawn = vi.fn(() => pty);
+    const helperSpawn = vi.fn(() => createFakePty());
+    const createDirectSpawn = vi.fn(() => directSpawn);
+    const createHelperSpawn = vi.fn(() => helperSpawn);
+
+    const session = createNodePtyTerminalSession({
+      shell: { command: "bash", args: [] },
+      cwd: "/vault",
+      platform: "linux",
+      createDirectSpawn,
+      createHelperSpawn,
+    });
+
+    session.start();
+
+    expect(createDirectSpawn).toHaveBeenCalledTimes(1);
+    expect(createHelperSpawn).not.toHaveBeenCalled();
+    expect(directSpawn).toHaveBeenCalledWith(
+      "bash",
+      ["-il"],
+      expect.objectContaining({
+        cwd: "/vault",
+      }),
+    );
+  });
+
+  it("uses the helper PTY backend on Windows", () => {
+    const pty = createFakePty();
+    const directSpawn = vi.fn(() => createFakePty());
+    const helperSpawn = vi.fn(() => pty);
+    const createDirectSpawn = vi.fn(() => directSpawn);
+    const createHelperSpawn = vi.fn(() => helperSpawn);
+
+    const session = createNodePtyTerminalSession({
+      shell: { command: "powershell.exe", args: [] },
+      cwd: "C:/vault",
+      platform: "win32",
+      env: { SystemRoot: "C:\\Windows" },
+      createDirectSpawn,
+      createHelperSpawn,
+    });
+
+    session.start();
+
+    expect(createHelperSpawn).toHaveBeenCalledTimes(1);
+    expect(createDirectSpawn).not.toHaveBeenCalled();
+    expect(helperSpawn).toHaveBeenCalled();
   });
 });

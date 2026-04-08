@@ -6,6 +6,7 @@ export interface ResolveShellOptions {
   platform: NodeJS.Platform;
   env: NodeJS.ProcessEnv;
   commandExists: (command: string) => boolean;
+  fileExists?: (filePath: string) => boolean;
 }
 
 export interface ShellCommand {
@@ -16,6 +17,25 @@ export interface ShellCommand {
 export interface PreparedShellLaunch {
   shell: ShellCommand;
   cwd: string;
+}
+
+function prepareUnixShellCommand(shell: ShellCommand): ShellCommand {
+  if (shell.args.length > 0) {
+    return shell;
+  }
+
+  const commandName = path.basename(shell.command).toLowerCase();
+  if (commandName === "bash" || commandName === "zsh") {
+    return {
+      command: shell.command,
+      args: ["-il"],
+    };
+  }
+
+  return {
+    command: shell.command,
+    args: ["-i"],
+  };
 }
 
 export function resolveWindowsShortPath(options: {
@@ -95,14 +115,27 @@ export function resolveShellCommand(options: ResolveShellOptions): ShellCommand 
   }
 
   const envShell = options.env.SHELL;
-  if (envShell) {
+  const envShellName = envShell ? path.basename(envShell).toLowerCase() : "";
+  if (envShell && envShellName !== "sh") {
     return { command: envShell, args: [] };
   }
 
-  for (const command of ["zsh", "bash", "sh"]) {
+  const fileExists = options.fileExists ?? fs.existsSync;
+
+  for (const command of ["zsh", "bash"]) {
     if (options.commandExists(command)) {
       return { command, args: [] };
     }
+  }
+
+  for (const command of ["/usr/bin/zsh", "/bin/zsh", "/usr/bin/bash", "/bin/bash"]) {
+    if (fileExists(command)) {
+      return { command, args: [] };
+    }
+  }
+
+  if (options.commandExists("sh")) {
+    return { command: "sh", args: [] };
   }
 
   return { command: "sh", args: [] };
@@ -114,10 +147,11 @@ export function prepareShellLaunch(options: {
   platform: NodeJS.Platform;
   env: NodeJS.ProcessEnv;
   resolveWindowsPath?: (targetPath: string) => string | undefined;
+  fileExists?: (filePath: string) => boolean;
 }): PreparedShellLaunch {
   if (options.platform !== "win32") {
     return {
-      shell: options.shell,
+      shell: prepareUnixShellCommand(options.shell),
       cwd: options.cwd,
     };
   }

@@ -1,3 +1,4 @@
+import fs from "node:fs";
 import path from "node:path";
 import { fork, type ChildProcess } from "node:child_process";
 import { prepareShellLaunch, type ShellCommand } from "./shell";
@@ -34,6 +35,29 @@ type HelperEvent =
   | { type: "data"; data: string }
   | { type: "error"; message: string }
   | { type: "exit"; exitCode: number };
+
+export function createTerminalProcessEnv(env: NodeJS.ProcessEnv): NodeJS.ProcessEnv {
+  const home = env.HOME;
+  const currentPathEntries = (env.PATH ?? "").split(path.delimiter).filter(Boolean);
+  const preferredPathEntries = [
+    home ? path.join(home, ".local", "bin") : "",
+    home ? path.join(home, "bin") : "",
+    "/usr/local/bin",
+    "/usr/bin",
+    "/usr/local/sbin",
+    "/usr/sbin",
+  ].filter(Boolean);
+  const mergedPathEntries = [...preferredPathEntries, ...currentPathEntries].filter(
+    (entry, index, entries) => entries.indexOf(entry) === index,
+  );
+
+  return {
+    ...env,
+    TERM: !env.TERM || env.TERM.toLowerCase() === "dumb" ? "xterm-256color" : env.TERM,
+    COLORTERM: env.COLORTERM ?? "truecolor",
+    PATH: mergedPathEntries.join(path.delimiter),
+  };
+}
 
 function isClosedIpcError(error: unknown): boolean {
   if (!(error instanceof Error)) {
@@ -141,9 +165,11 @@ export function resolveHelperScriptPath(baseDir: string): string {
 function resolveNodeExecPath(options: {
   env?: NodeJS.ProcessEnv;
   processExecPath?: string;
+  fileExists?: (filePath: string) => boolean;
 } = {}): string {
   const env = options.env ?? process.env;
   const processExecPath = options.processExecPath ?? process.execPath;
+  const fileExists = options.fileExists ?? fs.existsSync;
   const lowerExecPath = processExecPath.toLowerCase();
 
   if (path.basename(lowerExecPath).startsWith("node")) {
@@ -152,6 +178,12 @@ function resolveNodeExecPath(options: {
 
   if (env.NODE) {
     return env.NODE;
+  }
+
+  for (const candidate of ["/usr/bin/node", "/usr/local/bin/node", "/app/bin/node"]) {
+    if (fileExists(candidate)) {
+      return candidate;
+    }
   }
 
   if (processExecPath) {
@@ -167,6 +199,7 @@ export function createHelperPtyBackend(options: {
   env?: NodeJS.ProcessEnv;
   processExecPath?: string;
   nodeExecPath?: string;
+  fileExists?: (filePath: string) => boolean;
 } = {}): TerminalSessionOptions["spawn"] {
   const baseDir = options.baseDir ?? __dirname;
   const helperScriptPath = resolveHelperScriptPath(baseDir);
@@ -177,6 +210,7 @@ export function createHelperPtyBackend(options: {
     resolveNodeExecPath({
       env: options.env,
       processExecPath,
+      fileExists: options.fileExists,
     });
   const usesElectronExecPath =
     process.platform === "linux" &&
@@ -187,6 +221,7 @@ export function createHelperPtyBackend(options: {
     ELECTRON_RUN_AS_NODE: "1",
     ...(usesElectronExecPath ? { ELECTRON_DISABLE_SANDBOX: "1" } : {}),
   };
+  const terminalEnv = createTerminalProcessEnv(process.env);
 
   return (file, args, spawnOptions) => {
     const child = forkProcess(helperScriptPath, [], {
@@ -278,7 +313,7 @@ export function createHelperPtyBackend(options: {
       cwd: String(spawnOptions.cwd ?? process.cwd()),
       cols: 80,
       rows: 24,
-      env: process.env,
+      env: terminalEnv,
     });
 
     return {
@@ -322,23 +357,76 @@ export function createHelperPtyBackend(options: {
   };
 }
 
+function loadNodePtyModule(baseDir: string): typeof import("node-pty") {
+  const localModulePath = path.join(baseDir, "node_modules", "node-pty");
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  return require(localModulePath) as typeof import("node-pty");
+}
+
+export function createDirectPtyBackend(options: {
+  baseDir?: string;
+  loadNodePty?: (baseDir: string) => typeof import("node-pty");
+} = {}): TerminalSessionOptions["spawn"] {
+  const baseDir = options.baseDir ?? __dirname;
+  const loadNodePty = options.loadNodePty ?? loadNodePtyModule;
+  const terminalEnv = createTerminalProcessEnv(process.env);
+
+  return (file, args, spawnOptions) => {
+    const nodePty = loadNodePty(baseDir);
+    const pty = nodePty.spawn(file, args, {
+      ...spawnOptions,
+      env: terminalEnv,
+    });
+
+    return {
+      pid: pty.pid,
+      process: pty.process,
+      onData(callback) {
+        return pty.onData(callback);
+      },
+      onExit(callback) {
+        return pty.onExit?.(({ exitCode }) => callback(exitCode)) ?? { dispose() {} };
+      },
+      write(data) {
+        pty.write(data);
+      },
+      resize(cols, rows) {
+        pty.resize(cols, rows);
+      },
+      kill() {
+        pty.kill();
+      },
+    };
+  };
+}
+
 export function createNodePtyTerminalSession(options: {
   shell: ShellCommand;
   cwd: string;
   baseDir?: string;
+  platform?: NodeJS.Platform;
+  env?: NodeJS.ProcessEnv;
+  createDirectSpawn?: typeof createDirectPtyBackend;
+  createHelperSpawn?: typeof createHelperPtyBackend;
 }): TerminalSession {
+  const platform = options.platform ?? process.platform;
+  const env = options.env ?? process.env;
   const launch = prepareShellLaunch({
     shell: options.shell,
     cwd: options.cwd,
-    platform: process.platform,
-    env: process.env,
+    platform,
+    env,
   });
+  const createSpawn =
+    platform === "win32"
+      ? (options.createHelperSpawn ?? createHelperPtyBackend)
+      : (options.createDirectSpawn ?? createDirectPtyBackend);
 
   return new TerminalSession({
     ...options,
     shell: launch.shell,
     cwd: launch.cwd,
-    spawn: createHelperPtyBackend({
+    spawn: createSpawn({
       baseDir: options.baseDir,
     }),
   });

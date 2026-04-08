@@ -197,7 +197,10 @@ describe("TerminalView", () => {
     );
     expect(sessions[0].started).toBe(true);
     expect(sessions[1].started).toBe(true);
-    expect(sessions[0].resized).toEqual([{ cols: 100, rows: 28 }]);
+    expect(sessions[0].resized).toEqual([
+      { cols: 100, rows: 28 },
+      { cols: 100, rows: 28 },
+    ]);
     expect(sessions[1].resized).toEqual([{ cols: 100, rows: 28 }]);
     expect(terminalUis[0].mountTarget).not.toBeNull();
     expect(terminalUis[1].mountTarget).not.toBeNull();
@@ -277,6 +280,34 @@ describe("TerminalView", () => {
 
     expect(sessionA.writes).toEqual(["npx codex\r"]);
     expect(sessionB.writes).toEqual(["npx claude\r"]);
+  });
+
+  it("refits the terminal when switching to another slot", async () => {
+    const terminalUiA = createTerminalUi();
+    const terminalUiB = createTerminalUi();
+    const sessionA = createSession();
+    const sessionB = createSession();
+    const view = new TerminalView(
+      {} as never,
+      {
+        isDesktop: true,
+        settings: DEFAULT_SETTINGS,
+        getVaultPath: () => "/vault",
+        createTerminalUi: vi.fn().mockResolvedValueOnce(terminalUiA).mockResolvedValueOnce(terminalUiB),
+        createSession: vi.fn().mockReturnValueOnce(sessionA).mockReturnValueOnce(sessionB),
+      },
+    );
+
+    await view.onOpen();
+    expect(sessionB.resized).toEqual([{ cols: 100, rows: 28 }]);
+
+    const slotBButton = view.containerEl.querySelector('button[data-slot-switch="B"]') as HTMLButtonElement;
+    slotBButton.click();
+
+    expect(sessionB.resized).toEqual([
+      { cols: 100, rows: 28 },
+      { cols: 100, rows: 28 },
+    ]);
   });
 
   it("restarts and clears the active slot from the toolbar", async () => {

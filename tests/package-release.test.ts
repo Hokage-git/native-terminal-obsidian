@@ -43,6 +43,11 @@ describe("getReleaseEntries", () => {
           target: path.join("node_modules", "node-pty", "prebuilds"),
           type: "directory",
         },
+        {
+          source: path.join(rootDir, "node_modules", "node-pty", "build", "Release"),
+          target: path.join("node_modules", "node-pty", "build", "Release"),
+          type: "directory",
+        },
       ]),
     );
   });

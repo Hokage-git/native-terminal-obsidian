@@ -237,6 +237,7 @@ export class TerminalView extends ItemView {
     }
 
     this.refreshSummary();
+    this.fitSlot(slotId);
     this.getActiveSlot()?.ui.focus();
   }
 

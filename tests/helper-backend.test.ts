@@ -44,6 +44,31 @@ function createFakeChildProcess() {
   };
 }
 
+function createExpectedTerminalEnv() {
+  const currentPathEntries = (process.env.PATH ?? "").split(":").filter(Boolean);
+  const preferredPathEntries = [
+    process.env.HOME ? `${process.env.HOME}/.local/bin` : "",
+    process.env.HOME ? `${process.env.HOME}/bin` : "",
+    "/usr/local/bin",
+    "/usr/bin",
+    "/usr/local/sbin",
+    "/usr/sbin",
+  ].filter(Boolean);
+  const mergedPathEntries = [...preferredPathEntries, ...currentPathEntries].filter(
+    (entry, index, entries) => entries.indexOf(entry) === index,
+  );
+
+  return {
+    ...process.env,
+    TERM:
+      !process.env.TERM || process.env.TERM.toLowerCase() === "dumb"
+        ? "xterm-256color"
+        : process.env.TERM,
+    COLORTERM: process.env.COLORTERM ?? "truecolor",
+    PATH: mergedPathEntries.join(":"),
+  };
+}
+
 describe("createHelperPtyBackend", () => {
   it("forks the helper script from the plugin directory and sends start metadata", () => {
     const child = createFakeChildProcess();
@@ -80,7 +105,7 @@ describe("createHelperPtyBackend", () => {
       cwd: "C:/vault",
       cols: 80,
       rows: 24,
-      env: process.env,
+      env: createExpectedTerminalEnv(),
     });
   });
 
@@ -168,6 +193,7 @@ describe("createHelperPtyBackend", () => {
       forkProcess,
       env: { PATH: "" },
       processExecPath: "/usr/lib/obsidian/obsidian",
+      fileExists: () => false,
     })("bash", [], { cwd: "/vault" });
 
     expect(forkProcess).toHaveBeenCalledWith(
@@ -177,6 +203,30 @@ describe("createHelperPtyBackend", () => {
         execPath: "/usr/lib/obsidian/obsidian",
         execArgv: ["--no-sandbox"],
         env: expect.objectContaining({
+          ELECTRON_DISABLE_SANDBOX: "1",
+        }),
+      }),
+    );
+  });
+
+  it("prefers a discovered absolute node binary over the Electron executable", () => {
+    const child = createFakeChildProcess();
+    const forkProcess = vi.fn(() => child as never);
+
+    createHelperPtyBackend({
+      baseDir: "/plugin",
+      forkProcess,
+      env: { PATH: "" },
+      processExecPath: "/usr/lib/obsidian/obsidian",
+      fileExists: (filePath) => filePath === "/usr/bin/node",
+    })("bash", [], { cwd: "/vault" });
+
+    expect(forkProcess).toHaveBeenCalledWith(
+      expect.any(String),
+      [],
+      expect.objectContaining({
+        execPath: "/usr/bin/node",
+        env: expect.not.objectContaining({
           ELECTRON_DISABLE_SANDBOX: "1",
         }),
       }),
