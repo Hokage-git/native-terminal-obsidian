@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { createHelperPtyBackend } from "../src/terminal/session";
+import { createHelperPtyBackend, createTerminalProcessEnv } from "../src/terminal/session";
 
 function createFakeChildProcess() {
   const listeners = new Map<string, Array<(...args: unknown[]) => void>>();
@@ -44,29 +44,8 @@ function createFakeChildProcess() {
   };
 }
 
-function createExpectedTerminalEnv() {
-  const currentPathEntries = (process.env.PATH ?? "").split(":").filter(Boolean);
-  const preferredPathEntries = [
-    process.env.HOME ? `${process.env.HOME}/.local/bin` : "",
-    process.env.HOME ? `${process.env.HOME}/bin` : "",
-    "/usr/local/bin",
-    "/usr/bin",
-    "/usr/local/sbin",
-    "/usr/sbin",
-  ].filter(Boolean);
-  const mergedPathEntries = [...preferredPathEntries, ...currentPathEntries].filter(
-    (entry, index, entries) => entries.indexOf(entry) === index,
-  );
-
-  return {
-    ...process.env,
-    TERM:
-      !process.env.TERM || process.env.TERM.toLowerCase() === "dumb"
-        ? "xterm-256color"
-        : process.env.TERM,
-    COLORTERM: process.env.COLORTERM ?? "truecolor",
-    PATH: mergedPathEntries.join(":"),
-  };
+function createExpectedTerminalEnv(platform: NodeJS.Platform, env: NodeJS.ProcessEnv = process.env) {
+  return createTerminalProcessEnv(env, { platform });
 }
 
 describe("createHelperPtyBackend", () => {
@@ -77,6 +56,7 @@ describe("createHelperPtyBackend", () => {
     const backend = createHelperPtyBackend({
       baseDir: "/plugin",
       forkProcess,
+      platform: "win32",
       nodeExecPath: "C:/Program Files/nodejs/node.exe",
     });
 
@@ -105,7 +85,7 @@ describe("createHelperPtyBackend", () => {
       cwd: "C:/vault",
       cols: 80,
       rows: 24,
-      env: createExpectedTerminalEnv(),
+      env: createExpectedTerminalEnv("win32"),
     });
   });
 
@@ -115,6 +95,7 @@ describe("createHelperPtyBackend", () => {
     const backend = createHelperPtyBackend({
       baseDir: "/plugin",
       forkProcess,
+      platform: "win32",
     });
 
     const pty = backend("powershell.exe", [], { cwd: "C:/vault" });
@@ -135,6 +116,7 @@ describe("createHelperPtyBackend", () => {
     const backend = createHelperPtyBackend({
       baseDir: "/plugin",
       forkProcess,
+      platform: "win32",
     });
     const pty = backend("powershell.exe", [], { cwd: "C:/vault" });
     const onData = vi.fn();
@@ -155,6 +137,7 @@ describe("createHelperPtyBackend", () => {
     const backend = createHelperPtyBackend({
       baseDir: "/plugin",
       forkProcess,
+      platform: "win32",
     });
 
     const pty = backend("powershell.exe", [], { cwd: "C:/vault" });
@@ -172,6 +155,7 @@ describe("createHelperPtyBackend", () => {
       baseDir: "/plugin",
       forkProcess,
       env: { ...process.env, NODE: "C:/custom/node.exe" },
+      platform: "win32",
       processExecPath: "C:/Users/Maks/AppData/Local/Programs/Obsidian/Obsidian.exe",
     })("powershell.exe", [], { cwd: "C:/vault" });
 
@@ -192,6 +176,7 @@ describe("createHelperPtyBackend", () => {
       baseDir: "/plugin",
       forkProcess,
       env: { PATH: "" },
+      platform: "linux",
       processExecPath: "/usr/lib/obsidian/obsidian",
       fileExists: () => false,
     })("bash", [], { cwd: "/vault" });
@@ -217,6 +202,7 @@ describe("createHelperPtyBackend", () => {
       baseDir: "/plugin",
       forkProcess,
       env: { PATH: "" },
+      platform: "linux",
       processExecPath: "/usr/lib/obsidian/obsidian",
       fileExists: (filePath) => filePath === "/usr/bin/node",
     })("bash", [], { cwd: "/vault" });
@@ -246,6 +232,7 @@ describe("createHelperPtyBackend", () => {
     const backend = createHelperPtyBackend({
       baseDir: "/plugin",
       forkProcess,
+      platform: "linux",
     });
     const pty = backend("bash", [], { cwd: "/vault" });
     const onData = vi.fn();

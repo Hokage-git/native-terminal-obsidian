@@ -77,7 +77,7 @@ describe("TerminalSession", () => {
       HOME: "/home/mgladkov",
       PATH: "/usr/bin",
       TERM: "dumb",
-    });
+    }, { platform: "linux" });
 
     expect(env.TERM).toBe("xterm-256color");
     expect(env.PATH).toContain("/usr/local/bin");

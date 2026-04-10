@@ -36,12 +36,18 @@ type HelperEvent =
   | { type: "error"; message: string }
   | { type: "exit"; exitCode: number };
 
-export function createTerminalProcessEnv(env: NodeJS.ProcessEnv): NodeJS.ProcessEnv {
+export function createTerminalProcessEnv(
+  env: NodeJS.ProcessEnv,
+  options: { platform?: NodeJS.Platform } = {},
+): NodeJS.ProcessEnv {
+  const platform = options.platform ?? process.platform;
+  const pathApi = platform === "win32" ? path.win32 : path.posix;
+  const pathDelimiter = platform === "win32" ? ";" : ":";
   const home = env.HOME;
-  const currentPathEntries = (env.PATH ?? "").split(path.delimiter).filter(Boolean);
+  const currentPathEntries = (env.PATH ?? "").split(pathDelimiter).filter(Boolean);
   const preferredPathEntries = [
-    home ? path.join(home, ".local", "bin") : "",
-    home ? path.join(home, "bin") : "",
+    home ? pathApi.join(home, ".local", "bin") : "",
+    home ? pathApi.join(home, "bin") : "",
     "/usr/local/bin",
     "/usr/bin",
     "/usr/local/sbin",
@@ -55,7 +61,7 @@ export function createTerminalProcessEnv(env: NodeJS.ProcessEnv): NodeJS.Process
     ...env,
     TERM: !env.TERM || env.TERM.toLowerCase() === "dumb" ? "xterm-256color" : env.TERM,
     COLORTERM: env.COLORTERM ?? "truecolor",
-    PATH: mergedPathEntries.join(path.delimiter),
+    PATH: mergedPathEntries.join(pathDelimiter),
   };
 }
 
@@ -197,6 +203,7 @@ export function createHelperPtyBackend(options: {
   baseDir?: string;
   forkProcess?: typeof fork;
   env?: NodeJS.ProcessEnv;
+  platform?: NodeJS.Platform;
   processExecPath?: string;
   nodeExecPath?: string;
   fileExists?: (filePath: string) => boolean;
@@ -204,6 +211,7 @@ export function createHelperPtyBackend(options: {
   const baseDir = options.baseDir ?? __dirname;
   const helperScriptPath = resolveHelperScriptPath(baseDir);
   const forkProcess = options.forkProcess ?? fork;
+  const platform = options.platform ?? process.platform;
   const processExecPath = options.processExecPath ?? process.execPath;
   const nodeExecPath =
     options.nodeExecPath ??
@@ -213,7 +221,7 @@ export function createHelperPtyBackend(options: {
       fileExists: options.fileExists,
     });
   const usesElectronExecPath =
-    process.platform === "linux" &&
+    platform === "linux" &&
     nodeExecPath === processExecPath &&
     !path.basename(processExecPath).toLowerCase().startsWith("node");
   const helperEnv: NodeJS.ProcessEnv = {
@@ -221,7 +229,7 @@ export function createHelperPtyBackend(options: {
     ELECTRON_RUN_AS_NODE: "1",
     ...(usesElectronExecPath ? { ELECTRON_DISABLE_SANDBOX: "1" } : {}),
   };
-  const terminalEnv = createTerminalProcessEnv(process.env);
+  const terminalEnv = createTerminalProcessEnv(options.env ?? process.env, { platform });
 
   return (file, args, spawnOptions) => {
     const child = forkProcess(helperScriptPath, [], {
